@@ -4,8 +4,13 @@ require 'octokit'
 require 'json'
 require 'date'
 require 'time'
+require 'project_metric_base'
 
 class ProjectMetricGithubUse
+  include ProjectMetricBase
+  add_credentials %I[github_project github_access_token github_main_branch]
+  add_raw_data %w[github_events]
+
   def initialize(credentials, raw_data = nil)
     @project_url = credentials[:github_project]
     @identifier = URI.parse(@project_url).path[1..-1]
@@ -13,53 +18,37 @@ class ProjectMetricGithubUse
     @client.auto_paginate = true
     @main_branch = credentials[:github_main_branch]
 
-    self.raw_data = raw_data if raw_data
-  end
-
-  def refresh
-    set_events
-    @raw_data = { events: @events.map(&:to_h) }.to_json
-  end
-
-  def raw_data=(new_data)
-    @raw_data = new_data
-    @events = JSON.parse(new_data, symbolize_names: true)[:events]
+    complete_with raw_data
   end
 
   def score
-    refresh unless @raw_data
     (commit_issues+branch_issues).inject(0) { |sum, val| sum + val[:severity] }
   end
 
   def image
-    refresh unless @raw_data
     @image ||= { chartType: 'github_use',
                  data: { commit_issues: commit_issues,
-                         branch_issues: branch_issues }}.to_json
-  end
-
-  def self.credentials
-    %I[github_project github_access_token github_main_branch]
+                         branch_issues: branch_issues }}
   end
 
   private
 
-  def set_events
+  def github_events
     # Events in the past three days
-    @events = @client.repository_events(@identifier)
-                  .select { |event| event[:created_at] > (Time.now - 3*24*60*60) }
+    @github_events = @client.repository_events(@identifier)
+                         .select { |event| event[:created_at] > (Time.now - 3*24*60*60) }
   end
 
   def commit_issues
-    commits = @events.select { |event| event[:type].eql?('PushEvent') }.flat_map { |event| event[:payload][:commits] }
-    commits.select { |cmit| cmit[:distinct] && missing_template?(cmit) }
-           .map { |cmit| {issue: "Commit message '#{cmit[:message]}' does not have story ID.", severity: 2, payload: cmit } }
+    commits = @github_events.select { |event| event['type'].eql?('PushEvent') }.flat_map { |event| event['payload']['commits'] }
+    commits.select { |cmit| cmit['distinct'] && missing_template?(cmit) }
+           .map { |cmit| {issue: "Commit message '#{cmit['message']}' does not have story ID.", severity: 2, payload: cmit } }
   end
 
   def branch_issues
-    branches = @events.select { |event| event[:type].eql?('CreateEvent') && event[:payload][:ref_type].eql?('branch') }
-    branches.select { |branch| wrong_branch_name? branch[:payload] }
-            .map { |branch| {issue: "Branch name '#{branch[:payload][:ref]}' does not have story ID.", severity: 2, payload: branch } }
+    branches = @github_events.select { |event| event['type'].eql?('CreateEvent') && event['payload']['ref_type'].eql?('branch') }
+    branches.select { |branch| wrong_branch_name? branch['payload'] }
+            .map { |branch| {issue: "Branch name '#{branch['payload']['ref']}' does not have story ID.", severity: 2, payload: branch } }
   end
 
   # def pr_issues
@@ -68,12 +57,12 @@ class ProjectMetricGithubUse
   # end
 
   def missing_template?(cmit)
-    return false if cmit[:message].start_with? 'Merge'
-    /^\[\d+\]/.match(cmit[:message]).nil? ? true : false
+    return false if cmit['message'].start_with? 'Merge'
+    /^\[\d+\]/.match(cmit['message']).nil? ? true : false
   end
 
   def wrong_branch_name?(branch)
-    /^\d+/.match(branch[:ref]).nil? ? true : false
+    /^\d+/.match(branch['ref']).nil? ? true : false
   end
 
   # def short_close_time(pull_requests)

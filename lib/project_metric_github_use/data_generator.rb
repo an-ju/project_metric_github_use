@@ -12,7 +12,7 @@ class ProjectMetricGithubUse
                 commit_issues: Array.new(commits) { commit_issue },
                 branch_issues: Array.new(branches) { branch_issue }
             }
-        }.to_json
+        }
     }
   end
 

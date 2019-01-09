@@ -8,12 +8,12 @@ RSpec.describe ProjectMetricGithubUse do
   context 'image and score' do
     subject(:metric) do
       credentials = {github_project: 'https://github.com/an-ju/teamscope', github_token: 'test token'}
-      raw_data = File.read 'spec/data/raw_data_github_events.json'
+      raw_data = JSON.parse(File.read 'spec/data/raw_data_github_events.json')
       described_class.new(credentials, raw_data)
     end
 
     it 'should parse raw data correctly' do
-      expect(metric.instance_variable_get(:@events)).not_to be_nil
+      expect(metric.instance_variable_get(:@github_events)).not_to be_nil
     end
 
     it 'should give the right score' do
@@ -21,13 +21,13 @@ RSpec.describe ProjectMetricGithubUse do
     end
 
     it 'should set image data' do
-      expect(JSON.parse(metric.image)).to have_key('data')
+      expect(metric.image).to have_key(:data)
     end
 
     it 'should have the right image content' do
-      image = JSON.parse(metric.image)
-      expect(image['data']['commit_issues']).not_to be_empty
-      expect(image['data']['branch_issues']).not_to be_empty
+      image = metric.image
+      expect(image[:data][:commit_issues]).not_to be_empty
+      expect(image[:data][:branch_issues]).not_to be_empty
     end
   end
 
@@ -39,9 +39,9 @@ RSpec.describe ProjectMetricGithubUse do
     end
 
     it 'should set image contents correctly' do
-      image = JSON.parse(described_class.fake_data.first[:image])
-      expect(image['data']['commit_issues']).not_to be_empty
-      expect(image['data']['branch_issues']).not_to be_empty
+      image = described_class.fake_data.first[:image]
+      expect(image[:data][:commit_issues]).not_to be_empty
+      expect(image[:data][:branch_issues]).not_to be_empty
     end
   end
 end
