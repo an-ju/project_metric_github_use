@@ -37,6 +37,7 @@ class ProjectMetricGithubUse
     # Events in the past three days
     @github_events = @client.repository_events(@identifier)
                          .select { |event| event[:created_at] > (Time.now - 3*24*60*60) }
+                         .map(&:to_h)
   end
 
   def commit_issues
