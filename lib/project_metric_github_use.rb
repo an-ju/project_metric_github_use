@@ -34,9 +34,9 @@ class ProjectMetricGithubUse
   private
 
   def github_events
-    # Events in the past three days
+    # Events in the past two weeks
     @github_events = @client.repository_events(@identifier)
-                         .select { |event| event[:created_at] > (Time.now - 3*24*60*60) }
+                         .select { |event| event[:created_at] > (Time.now - 14*24*60*60) }
                          .map(&:to_h)
   end
 
