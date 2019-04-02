@@ -26,9 +26,34 @@ class ProjectMetricGithubUse
 
   def self.commit_issue
     {
-        issue: 'Commit message \'update the gem\' does not have story ID.',
+        issue: %q{Commit <a href="https://github.com/octocat/Hello-World/commit/6dcb09b5b57875f334f61aebed695e2e4193db5e">123456</a> is too large.},
         severity: 2,
-        payload: {:sha=>"5f898b50f9f7661eab85bf127c2891fe28d4ab75", :author=>{:email=>"an_ju@berkeley.edu", :name=>"an-ju"}, :message=>"added heroku status gem.", :distinct=>true, :url=>"https://api.github.com/repos/an-ju/projectscope/commits/5f898b50f9f7661eab85bf127c2891fe28d4ab75"}
+        payload: '
+{   "commit": {
+    "url": "https://api.github.com/repos/octocat/Hello-World/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+    "author": {
+      "name": "Monalisa Octocat",
+      "email": "support@github.com",
+      "date": "2011-04-14T16:00:49Z"
+    },
+    "committer": {
+      "name": "Monalisa Octocat",
+      "email": "support@github.com",
+      "date": "2011-04-14T16:00:49Z"
+    },
+    "message": "Fix all the bugs",
+    "tree": {
+      "url": "https://api.github.com/repos/octocat/Hello-World/tree/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+      "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e"
+    },
+    "comment_count": 0,
+    "verification": {
+      "verified": false,
+      "reason": "unsigned",
+      "signature": null,
+      "payload": null
+    }
+  }'
     }
   end
 end

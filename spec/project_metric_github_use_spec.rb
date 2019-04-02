@@ -7,9 +7,18 @@ RSpec.describe ProjectMetricGithubUse do
 
   context 'image and score' do
     subject(:metric) do
-      credentials = {github_project: 'https://github.com/an-ju/teamscope', github_token: 'test token'}
-      raw_data = JSON.parse(File.read 'spec/data/raw_data_github_events.json')
-      described_class.new(credentials, raw_data)
+      described_class.new github_project: 'https://github.com/an-ju/projectscope', github_token: 'test token'
+    end
+
+    before :each do
+      client = double('client')
+      events_raw = double('raw events')
+
+      allow(Octokit::Client).to receive(:new).and_return(client)
+      allow(client).to receive(:auto_paginate=)
+      allow(client).to receive(:repository_events).with('an-ju/projectscope').and_return(events_raw)
+      allow(client).to receive(:commit) { JSON.parse(File.read('spec/data/github_commit.json')) }
+      allow(events_raw).to receive(:select) { JSON.parse(File.read('spec/data/raw_data_github_events.json'))['github_events'] }
     end
 
     it 'should parse raw data correctly' do

@@ -9,7 +9,7 @@ require 'project_metric_base'
 class ProjectMetricGithubUse
   include ProjectMetricBase
   add_credentials %I[github_project github_access_token github_main_branch]
-  add_raw_data %w[github_events]
+  add_raw_data %w[github_events github_commits]
 
   def initialize(credentials, raw_data = nil)
     @project_url = credentials[:github_project]
@@ -41,10 +41,23 @@ class ProjectMetricGithubUse
     @github_events = JSON.parse(events.to_json)
   end
 
+  def github_commits
+    github_events if @github_events.nil?
+
+    @github_commits = []
+    @github_events.select { |event| event['type'].eql? 'PushEvent' }.each do |event|
+      event['payload']['commits'].select { |cmit| cmit['distinct'] }.each do |cmit|
+        @github_commits.push(@client.commit(@identifier, cmit['sha']))
+      end
+    end
+    @github_commits
+  end
+
   def commit_issues
-    commits = @github_events.select { |event| event['type'].eql?('PushEvent') }.flat_map { |event| event['payload']['commits'] }
-    commits.select { |cmit| cmit['distinct'] && missing_template?(cmit) }
-           .map { |cmit| {issue: "Commit message '#{cmit['message']}' does not have story ID.", severity: 2, payload: cmit } }
+    commit_issues = @github_commits.select { |cmit| large_commit?(cmit) }
+                        .map { |cmit| {issue: %Q{Commit <a href="#{cmit['html_url']}">#{cmit['sha'][-6..-1]}</a> is too large.},
+                                       severity: 2, payload: cmit['commit'] } }
+    commit_issues
   end
 
   def branch_issues
@@ -65,6 +78,10 @@ class ProjectMetricGithubUse
 
   def wrong_branch_name?(branch)
     /^\d+/.match(branch['ref']).nil? ? true : false
+  end
+
+  def large_commit?(cmit)
+    cmit['stats']['total'] > 100 || cmit['files'].length > 5
   end
 
   # def short_close_time(pull_requests)
